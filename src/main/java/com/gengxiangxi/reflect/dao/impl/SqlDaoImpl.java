@@ -1,0 +1,179 @@
+package com.gengxiangxi.reflect.dao.impl;
+
+import com.gengxiangxi.reflect.dao.SqlDao;
+import com.gengxiangxi.reflect.annotation.Column;
+import com.gengxiangxi.reflect.annotation.Id;
+import com.gengxiangxi.reflect.annotation.Table;
+import com.gengxiangxi.reflect.utils.GetCondition;
+
+import java.lang.reflect.Field;
+
+/**
+ * @author gengxiangxi
+ * @date:2021/8/2
+ * @description: 动态拼接SQL语句
+ */
+public class SqlDaoImpl implements SqlDao {
+    /**
+     * 查询所有的SQL语句
+     *
+     * @param clazz 类
+     * @return 查询所有的SQL语句字符串:select tid,tname,sage from teacher
+     */
+    @Override
+    public String findAllSql(Class<?> clazz) {
+        // SQL语句
+        StringBuilder sql = new StringBuilder();
+        sql.append("select ");
+
+        // 获取类的所有属性
+        Field[] fields = clazz.getDeclaredFields();
+        // 遍历属性，获取类中注解的字段、表名
+        for (Field field : fields) {
+            // 类中注解的字段
+            Column columnAnnotation = field.getAnnotation(Column.class);
+            String columnName = columnAnnotation.columnName();
+            // 将字段拼接到SQL语句
+            sql.append(columnName).append(",");
+        }
+        // 删除SQL语句中最后多余的逗号，
+        sql.deleteCharAt(sql.length() - 1);
+        sql.append(" from ");
+
+        // 获取类中注解的表名
+        Table tableAnnotation = (Table) clazz.getAnnotation(Table.class);
+        String tableName = tableAnnotation.tableName();
+        sql.append(tableName);
+        System.out.println("findAllSql:" + sql.toString());
+        return sql.toString();
+    }
+
+    /**
+     * 根据id查询
+     *
+     * @param clazz 类
+     * @return 根据id查询的SQL语句字符串:select sid,sname,sage from student where sid = ?
+     */
+    @Override
+    public String findByIdSql(Class<?> clazz) {
+        Id idAnnotation = null;
+        StringBuilder sql = new StringBuilder();
+        sql.append("select ");
+
+        // 获取类的所有属性
+        Field[] fields = clazz.getDeclaredFields();
+        // 遍历属性，获取类中注解的字段、表名
+        for (Field field : fields) {
+            // 类中注解的字段
+            Column columnAnnotation = field.getAnnotation(Column.class);
+            String columnName = columnAnnotation.columnName();
+            // 将字段拼接到SQL语句
+            sql.append(columnName).append(",");
+        }
+        // 删除SQL语句中最后多余的逗号，
+        sql.deleteCharAt(sql.length() - 1);
+        sql.append(" from ");
+
+        // 获取类中注解的表名
+        Table tableAnnotation = (Table) clazz.getAnnotation(Table.class);
+        String tableName = tableAnnotation.tableName();
+        sql.append(tableName).append(" where ");
+
+        // 获取字段id
+        for (Field field : fields) {
+            idAnnotation = field.getAnnotation(Id.class);
+            if (idAnnotation != null) {
+                String idName = idAnnotation.idName();
+                sql.append(idName).append(" = ?");
+                break;
+            }
+        }
+        System.out.println("findByIdSql:" + sql.toString());
+        return sql.toString();
+    }
+
+    /**
+     * 删除
+     *
+     * @param clazz 类
+     * @return 删除的SQL语句字符串
+     */
+    @Override
+    public String deleteSql(Class<?> clazz) {
+        //创建sql语句字符串
+        StringBuilder sql = new StringBuilder();
+        //添加指令          delete from
+        sql.append("delete from ");
+        //获取表名
+        Table tableAnnotation = clazz.getAnnotation(Table.class);
+        //将表名转换为字符串
+        String tableName = tableAnnotation.tableName();
+        //添加指令          delete from teacher where
+        sql.append(tableName).append(" where ");
+        //返回指令字符串
+        return sql.toString();
+    }
+
+    /**
+     * 新增
+     *
+     * @param clazz 类
+     * @return 新增的SQL语句
+     */
+    @Override
+    public String addSql(Class<?> clazz) {
+        //创建sql语句字符串
+        StringBuilder sql = new StringBuilder();
+        //添加指令          insert into
+        sql.append("insert into ");
+        //获取表名
+        Table tableAnnotation = clazz.getAnnotation(Table.class);
+        //将表名转换为字符串
+        String tableName = tableAnnotation.tableName();
+        //添加指令          insert into teacher (
+        sql.append(tableName).append(" (");
+        //获取所有字段
+        Field[] fields = clazz.getDeclaredFields();
+        //获取所有字段名字符串并添加到指令中
+        for (Field field : fields) {
+            //获取当前字段注解
+            Column columnAnnotation = field.getAnnotation(Column.class);
+            //获取当前字段注解名字符串
+            String columnName = columnAnnotation.columnName();
+            //将当前字段注解名字符串添加到指令中
+            sql.append(columnName).append(",");
+        }       //insert into teacher (tid,tname,tage，
+        //删除最后一个逗号并添加最后指令       insert into teacher (tid,tname,tage) values (?,?,?)
+        sql.deleteCharAt(sql.length() - 1).append(") values (?,?,?)");
+        //返回指令字符串
+        return sql.toString();
+    }
+
+    /**
+     * 修改
+     *
+     * @param clazz 类
+     * @return 修改的SQL语句
+     */
+    @Override
+    public String updateSql(Class<?> clazz) {
+        Id idAnnotation;
+        Field[] fields = clazz.getDeclaredFields();
+        StringBuilder sql = new StringBuilder();
+        sql.append("update ");
+        Table tableAnnotation = clazz.getAnnotation(Table.class);
+        String tableName = tableAnnotation.tableName();
+        sql.append(tableName).append(" set ");
+        String str = GetCondition.getCondition();
+        sql.append(str).append(" where ");
+        for (Field field : fields) {
+            idAnnotation = field.getAnnotation(Id.class);
+            if (idAnnotation != null) {
+                String idName = idAnnotation.idName();
+                sql.append(idName).append(" = ?");
+                break;
+            }
+        }
+        return sql.toString();
+    }
+}
