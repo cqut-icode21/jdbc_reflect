@@ -4,6 +4,8 @@ import com.panqin.reflect.entities.Student;
 import com.panqin.reflect.entities.Teacher;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.junit.Assert.*;
 
 public class DatabaseReflectTest {
@@ -11,8 +13,20 @@ public class DatabaseReflectTest {
 
     @Test
     public void findAll() {
-        System.out.println(databaseReflect.findAll(Student.class));
-        System.out.println("\n");
+        DatabaseReflect databaseReflect = new DatabaseReflect();
+
+//        List<Student> list = databaseReflect.findAll(Student.class);
+//
+//        for (Student student : list) {
+//            System.out.println(student);
+//        }
+//        System.out.println("\n");
+
+        List<Teacher> list = databaseReflect.findAll(Teacher.class);
+
+        for (Teacher teacher : list) {
+            System.out.println(teacher);
+        }
     }
 
     @Test

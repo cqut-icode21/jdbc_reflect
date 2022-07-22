@@ -14,6 +14,7 @@ public class main {
         System.out.println("----------2.删除------------");
         System.out.println("----------3.查找------------");
         System.out.println("----------4.修改------------");
+        System.out.println("---------5.查询全部----------");
         System.out.println("--------请选择你的操作--------");
         System.out.println("---------------------------");
 
@@ -35,6 +36,7 @@ public class main {
                 int age = scanner.nextInt();
                 Teacher teacher = new Teacher(id, name, sex, age);
                 databaseReflect.add(teacher);
+                break;
             }
 
             case 2 : {
@@ -47,7 +49,7 @@ public class main {
                 System.out.println("请输入想要查询对象的id");
                 int id = scanner.nextInt();
                 databaseReflect.findById(Teacher.class,id);
-
+                break;
             }
 
             case 4:{
@@ -67,8 +69,14 @@ public class main {
                     System.out.println("修改失败！");
                 }
                 System.out.println("\n");
+                break;
             }
 
+            case 5:{
+                DatabaseReflectTest findAll = new DatabaseReflectTest();
+                findAll.findAll();
+                break;
+            }
         }
 
     }

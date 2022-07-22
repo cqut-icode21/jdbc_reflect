@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.FileHandler;
 
@@ -42,20 +43,34 @@ public class DatabaseReflect implements BaseDao {
      */
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-//        Field[] fields = clazz.getDeclaredFields();
-//
-//        connection = DatabaseUtil.getConnection();
-//        try {
-//            String sql = sqlDao.findAllSql(clazz);
-//            statement = connection.prepareStatement(sql);
-//            System.out.println("findAll:" + statement);
-//            resultSet = statement.executeQuery();
-//        } catch (SQLException e) {
-//            throw new RuntimeException(e);
-//        }finally {
-//            DatabaseUtil.close(connection,statement,resultSet);
-//        }
-        return null;
+        Field[] fields = clazz.getDeclaredFields();
+        List<T> list = null;
+        connection = DatabaseUtil.getConnection();
+        String sql = sqlDao.findAllSql(clazz);
+        try {
+            statement = connection.prepareStatement(sql);
+            resultSet = statement.executeQuery();
+
+            list = new ArrayList<>();
+            int n = 0;
+            // 遍历结果集
+            while (resultSet.next()) {
+                T object = clazz.newInstance();
+                for (int i = 0; i < fields.length; i++) {
+                    Field field = fields[i];
+                    // 保证私有属性也能进行操作
+                    field.setAccessible(true);
+                    // 设置指定对象属性的值
+                    field.set(object, resultSet.getObject(i + 1));
+                }
+                list.add(object);
+            }
+
+        } catch (SQLException | InstantiationException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        return list;
     }
 
     /**
