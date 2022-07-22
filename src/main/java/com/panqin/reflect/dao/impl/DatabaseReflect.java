@@ -1,0 +1,233 @@
+package com.panqin.reflect.dao.impl;
+
+import com.panqin.reflect.annotation.Column;
+import com.panqin.reflect.annotation.Id;
+import com.panqin.reflect.dao.BaseDao;
+import com.panqin.reflect.utils.DatabaseUtil;
+
+import java.lang.reflect.Field;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * @author 潘琴
+ * @date:2021/8/1
+ * @description: 实现SQL语句 及 增删改查方法
+ */
+public class DatabaseReflect implements BaseDao {
+    /**
+     * 数据库连接
+     */
+    Connection connection = null;
+    /**
+     * 预编译
+     */
+    PreparedStatement statement = null;
+    /**
+     * 结果集
+     */
+    ResultSet resultSet = null;
+    /**
+     * SQL语句实现类
+     */
+    SqlDaoImpl sqlDao = new SqlDaoImpl();
+
+    /**
+     * 查询所有
+     *
+     * @param clazz 类
+     * @return 类的所有结果数组
+     */
+    @Override
+    public <T> List<T> findAll(Class<T> clazz) {
+        List<T> list = new ArrayList<>();
+        T object = null;
+
+        Field[] fields = clazz.getDeclaredFields();
+        connection = DatabaseUtil.getConnection();
+        try {
+            String sql = sqlDao.findAllSql(clazz);
+            statement = connection.prepareStatement(sql);
+            System.out.println("findAll:" + statement);
+            resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                object = clazz.newInstance();
+                for (int i = 0; i < fields.length; i++) {
+                    Field field = fields[i];
+                    field.setAccessible(true);
+                    field.set(object, resultSet.getObject(i + 1));
+                }
+                list.add(object);
+            }
+        } catch (SQLException | InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } finally {
+            // 7、释放资源
+            DatabaseUtil.close(connection, statement, resultSet);
+        }
+        return list;
+    }
+
+    /**
+     * 根据id查询
+     *
+     * @param clazz 类
+     * @param id    要查询的对象的id
+     * @return 查询的对象的所有信息
+     */
+    @Override
+    public Object findById(Class<?> clazz, Object id) {
+        Object object = null;
+        Field[] fields = clazz.getDeclaredFields();
+
+        // 1、获取数据库连接
+        connection = DatabaseUtil.getConnection();
+        try {
+            // 2、获取到SQL语句
+            String sql = sqlDao.findByIdSql(clazz);
+            // 3、预编译SQL语句
+            statement = connection.prepareStatement(sql);
+            // 4、填充参数（可选）
+            statement.setObject(1, id);
+
+            // 5、执行SQL语句
+            System.out.println("findById:" + statement);
+            resultSet = statement.executeQuery();
+            // 6、获取执行结果
+            object = clazz.newInstance();
+            // 遍历结果集
+            while (resultSet.next()) {
+                for (int i = 0; i < fields.length; i++) {
+                    Field field = fields[i];
+                    // 保证私有属性也能进行操作
+                    field.setAccessible(true);
+                    // 设置指定对象属性的值
+                    field.set(object, resultSet.getObject(i + 1));
+                }
+            }
+            return object;
+        } catch (RuntimeException | SQLException | IllegalAccessException | InstantiationException throwables) {
+            throwables.printStackTrace();
+        } finally {
+            // 7、释放资源
+            DatabaseUtil.close(connection, statement, resultSet);
+        }
+        return object;
+    }
+
+    /**
+     * 删除
+     *
+     * @param clazz 类
+     * @param id    需要删除的对象的id
+     * @return 是否成功
+     */
+    @Override
+    public boolean delete(Class<?> clazz, Object id) {
+        int result = -1;
+        // 1、获取数据库连接
+        connection = DatabaseUtil.getConnection();
+        try {
+            // 2、获取到SQL语句
+            String sql = sqlDao.deleteSql(clazz);
+            // 3、预编译SQL语句
+            statement = connection.prepareStatement(sql);
+            // 4、填充参数（可选）
+            statement.setObject(1, id);
+            // 5、执行SQL语句
+            System.out.println("delete:" + statement);
+            result = statement.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            // 7、释放资源
+            DatabaseUtil.close(connection, statement, resultSet);
+        }
+        return result > 0;
+    }
+
+    /**
+     * 新增
+     *
+     * @param object 新增的对象
+     * @return 是否成功
+     */
+    @Override
+    public boolean add(Object object) {
+        int result = -1;
+        // 1、获取数据库连接
+        connection = DatabaseUtil.getConnection();
+        Field[] fields = object.getClass().getDeclaredFields();
+        try {
+            // 2、获取到SQL语句
+            String sql = sqlDao.addSql(object.getClass());
+            // 3、预编译SQL语句
+            statement = connection.prepareStatement(sql);
+            // 4、填充参数（可选）
+            for (int i = 0; i < fields.length; i++) {
+                Field field = fields[i];
+                // 保证私有属性也能进行操作
+                field.setAccessible(true);
+                // 设置指定对象属性的值
+                Object o = field.get(object);
+                statement.setObject(i + 1, o);
+            }
+            // 5、执行SQL语句
+            System.out.println("add:" + statement);
+            result = statement.executeUpdate();
+        } catch (SQLException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } finally {
+            // 7、释放资源
+            DatabaseUtil.close(connection, statement, resultSet);
+        }
+        return result > 0;
+    }
+
+    /**
+     * 修改
+     *
+     * @param object 对象
+     * @param id     需要修改的对象的id
+     * @return 是否成功
+     */
+    @Override
+    public boolean update(Object object, Object id) {
+        int result = -1;
+        Field[] fields = object.getClass().getDeclaredFields();
+
+        // 1、获取数据库连接
+        connection = DatabaseUtil.getConnection();
+        try {
+            // 2、获取到SQL语句
+            String sql = sqlDao.updateSql(object.getClass());
+            // 3、预编译SQL语句
+            statement = connection.prepareStatement(sql);
+            // 4、填充参数（可选）
+            for (int i = 0; i < fields.length; i++) {
+                Field field = fields[i];
+                // 保证私有属性也能进行操作
+                field.setAccessible(true);
+                Object o = field.get(object);
+                // 设置指定对象属性的值
+                if (field.getAnnotation(Id.class) != null) {
+                    statement.setObject(5, o);
+                    continue;
+                } else
+                    statement.setObject(i, o);
+            }
+//            statement.setObject(fields.length,id);
+            // 5、执行SQL语句
+            System.out.println("update:" + statement);
+            result = statement.executeUpdate();
+        } catch (SQLException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } finally {
+            // 7、释放资源
+            DatabaseUtil.close(connection, statement, resultSet);
+        }
+        return result > 0;
+    }
+}
