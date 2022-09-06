@@ -57,6 +57,7 @@ public class MainTest {
                 } else if (n == 2) {
                     findTeacher();
                 }
+                break;
             case 5:
                 if (n == 1){
                     findAllStudent();
@@ -65,8 +66,7 @@ public class MainTest {
                 }
         }
 
-        String[] a = null;
-        main(a);
+        main(null);
     }
 
     public static void addStudent(){
